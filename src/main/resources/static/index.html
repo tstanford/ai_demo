@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Chat</title>
+    <style>
+        body {
+            font-family: Arial;
+            max-width: 800px;
+            margin: 50px auto;
+        }
+
+        #chat {
+            height: 500px;
+            border: 1px solid #ccc;
+            overflow-y: auto;
+            padding: 10px;
+            white-space: pre-wrap;
+        }
+
+        .user {
+            color: blue;
+            margin: 10px 0;
+        }
+
+        .bot {
+            color: green;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Local AI Assistant</h1>
+
+<div id="chat"></div>
+
+<input id="message" type="text" style="width:80%">
+<button onclick="send()">Send</button>
+
+<script>
+
+    async function send() {
+
+        const input = document.getElementById("message");
+        const text = input.value;
+
+        const chat = document.getElementById("chat");
+
+        chat.innerHTML += `<div class="user"><b>You:</b> ${text}</div>`;
+
+        input.value = "";
+
+        const response = await fetch("/api/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                message: text
+            })
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let answer = "";
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            answer += decoder.decode(value);
+        }
+        chat.innerHTML += `<div class="bot"><b>AI:</b> ${answer}</div>`;
+    }
+
+</script>
+
+</body>
+</html>
