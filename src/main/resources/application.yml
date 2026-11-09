@@ -1,3 +1,6 @@
+server:
+  port: 9000
+
 spring:
   ai:
     ollama:
@@ -5,5 +8,9 @@ spring:
       chat:
         options:
           model: llama3.2
+    mcp:
+      server:
+        name: bookmark-mcp-server
+        version: 1.0.0
   application:
     name: ai_demo
