@@ -4,6 +4,7 @@ import io.stanford.tim.ai_demo.dtos.ChatRequest;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
@@ -29,15 +30,19 @@ public class ChatController {
         this.chatClient = builder.build();
     }
 
-    @PostMapping(value = "",
-            produces = MediaType.APPLICATION_NDJSON_VALUE)
-    public Flux<String> stream(@RequestBody ChatRequest request) {
+    @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> stream(@RequestParam String message) {
 
         return chatClient.prompt()
-                .system(docs + "\n\nQ: What is todays date?\nA:"+ java.time.LocalDate.now())
-                .user(request.message())
+                .system(docs + "\n\nQ: What is today's date?\nA:"+ java.time.LocalDate.now())
+                .user(message)
                 .stream()
-                .content();
+                .content()
+                .bufferUntil(token ->
+                        token.contains(".") ||
+                                token.contains("!") ||
+                                token.contains("?"))
+                .map(tokens -> String.join("", tokens));
     }
 
 

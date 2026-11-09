@@ -34,14 +34,35 @@
 
 <div id="chat"></div>
 
-<input id="message" type="text" style="width:80%">
-<button onclick="send()">Send</button>
+<form id="chatForm">
+    <input id="message" type="text" style="width:80%" autofocus>
+    <button type="submit">Send</button>
+</form>
 
 <script>
+    const input = document.getElementById("message");
+
+    function restoreFocus() {
+        input.focus();
+    }
+
+    window.addEventListener("load", restoreFocus);
+
+    input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            send();
+            restoreFocus();
+        }
+    });
+
+    document.getElementById("chatForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        send();
+        restoreFocus();
+    });
 
     async function send() {
-
-        const input = document.getElementById("message");
         const text = input.value;
 
         const chat = document.getElementById("chat");
@@ -49,28 +70,34 @@
         chat.innerHTML += `<div class="user"><b>You:</b> ${text}</div>`;
 
         input.value = "";
+        restoreFocus();
 
-        const response = await fetch("/api/chat", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                message: text
-            })
-        });
+        // Create empty AI message
+        const botDiv = document.createElement("div");
+        botDiv.className = "bot";
+        botDiv.innerHTML = "<b>AI:</b> ";
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
+        chat.appendChild(botDiv);
+
+        const source = new EventSource(
+            `/api/chat?message=${encodeURIComponent(text)}`
+        );
+
         let answer = "";
 
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+        source.onmessage = (event) => {
+            answer += event.data+ " ";
 
-            answer += decoder.decode(value);
-        }
-        chat.innerHTML += `<div class="bot"><b>AI:</b> ${answer}</div>`;
+            // Update existing message instead of adding a new one
+            botDiv.innerHTML = `<b>AI:</b> ${answer}`;
+
+            // Auto-scroll
+            chat.scrollTop = chat.scrollHeight;
+        };
+
+        source.onerror = () => {
+            source.close();
+        };
     }
 
 </script>
